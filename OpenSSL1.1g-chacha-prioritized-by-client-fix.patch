@@ -1,0 +1,159 @@
+From fdgvdsg576576iyrfgdh3t4b Mon Sep 17 00:00:00 2001
+From: Bassie / Buik
+Date: Fri, 8 Dec 2017 00:27:12 -0800
+Subject: [PATCH] OpenSSL 1.1.0G - Use ChaCha only if it is prioritized by the client
+
+This patch is based on the official OpenSSL 1.1.1dev code of the OpenSSL authors.
+Upstream source: https://github.com/openssl/openssl/commit/e1c7871de80029b81824df4d59edc6de5293835f
+
+Upstream test suite plus documentation code does not form part of this patch.
+The test suite won't work anyway as OpenSSL is compiled with Nginx (my situation) and not compiled c.q. installed as stand alone.
+Therefore the documentation and ChaCha cipher priority test suite is not included.
+
+diff --git a/apps/apps.h b/apps/apps.h
+--- a/apps/apps.h
++++ b/apps/apps.h
+@@ -215,6 +215,7 @@
+         OPT_S_ONRESUMP, OPT_S_NOLEGACYCONN, OPT_S_STRICT, OPT_S_SIGALGS, \
+         OPT_S_CLIENTSIGALGS, OPT_S_CURVES, OPT_S_NAMEDCURVE, OPT_S_CIPHER, \
+         OPT_S_DEBUGBROKE, OPT_S_COMP, \
++        OPT_S_PRIORITIZE_CHACHA, \
+         OPT_S__LAST
+ 
+ # define OPT_S_OPTIONS \
+@@ -236,6 +237,8 @@
+             "Disallow session resumption on renegotiation"}, \
+         {"no_legacy_server_connect", OPT_S_NOLEGACYCONN, '-', \
+             "Disallow initial connection to servers that don't support RI"}, \
++        {"prioritize_chacha", OPT_S_PRIORITIZE_CHACHA, '-', \
++               "Prioritize ChaCha ciphers when preferred by clients"}, \
+         {"strict", OPT_S_STRICT, '-', \
+             "Enforce strict certificate checks as per TLS standard"}, \
+         {"sigalgs", OPT_S_SIGALGS, 's', \
+@@ -266,6 +269,7 @@
+         case OPT_S_LEGACYCONN: \
+         case OPT_S_ONRESUMP: \
+         case OPT_S_NOLEGACYCONN: \
++        case OPT_S_PRIORITIZE_CHACHA: \
+         case OPT_S_STRICT: \
+         case OPT_S_SIGALGS: \
+         case OPT_S_CLIENTSIGALGS: \
+diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
+--- a/include/openssl/ssl.h
++++ b/include/openssl/ssl.h
+@@ -299,6 +299,9 @@
+ # define SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION        0x00040000U
+ /* Disable encrypt-then-mac */
+ # define SSL_OP_NO_ENCRYPT_THEN_MAC                      0x00080000U
++/* Prioritize Chacha20Poly1305 when client does.
++ * Modifies SSL_OP_CIPHER_SERVER_PREFERENCE */
++# define SSL_OP_PRIORITIZE_CHACHA                        0x00200000U
+ /*
+  * Set on servers to choose the cipher according to the server's preferences
+  */
+diff --git a/ssl/s3_lib.c b/ssl/s3_lib.c
+--- a/ssl/s3_lib.c
++++ b/ssl/s3_lib.c
+@@ -3590,6 +3590,10 @@
+     int i, ii, ok;
+     unsigned long alg_k, alg_a, mask_k, mask_a;
+ 
++#ifndef OPENSSL_NO_CHACHA
++    STACK_OF(SSL_CIPHER) *prio_chacha = NULL;
++#endif
++
+     /* Let's see which ciphers we can support */
+ 
+ #if 0
+@@ -3618,9 +3618,53 @@
+     }
+ #endif
+ 
+-    if (s->options & SSL_OP_CIPHER_SERVER_PREFERENCE || tls1_suiteb(s)) {
++    /* SUITE-B takes precedence over server preference and ChaCha priortiy */
++    if (tls1_suiteb(s)) {
+         prio = srvr;
+         allow = clnt;
++    } else if (s->options & SSL_OP_CIPHER_SERVER_PREFERENCE) {
++        prio = srvr;
++        allow = clnt;
++#ifndef OPENSSL_NO_CHACHA
++        /* If ChaCha20 is at the top of the client preference list,
++           and there are ChaCha20 ciphers in the server list, then
++           temporarily prioritize all ChaCha20 ciphers in the servers list. */
++        if (sk_SSL_CIPHER_num(clnt) > 0) {
++            c = sk_SSL_CIPHER_value(clnt, 0);
++            if (c->algorithm_enc == SSL_CHACHA20POLY1305) {
++                /* ChaCha20 is client preferred, check server... */
++                int num = sk_SSL_CIPHER_num(srvr);
++                int found = 0;
++                for (i = 0; i < num; i++) {
++                    c = sk_SSL_CIPHER_value(srvr, i);
++                    if (c->algorithm_enc == SSL_CHACHA20POLY1305) {
++                        found = 1;
++                        break;
++                    }
++                }
++                if (found) {
++                    prio_chacha = sk_SSL_CIPHER_new_null();
++                    /* if reserve fails, then there's likely a memory issue */
++                    if (prio_chacha != NULL) {
++                        /* Put all ChaCha20 at the top, starting with the one we just found */
++                        sk_SSL_CIPHER_push(prio_chacha, c);
++                        for (i++; i < num; i++) {
++                            c = sk_SSL_CIPHER_value(srvr, i);
++                           if (c->algorithm_enc == SSL_CHACHA20POLY1305)
++                                sk_SSL_CIPHER_push(prio_chacha, c);
++                        }
++                        /* Pull in the rest */
++                        for (i = 0; i < num; i++) {
++                            c = sk_SSL_CIPHER_value(srvr, i);
++                            if (c->algorithm_enc != SSL_CHACHA20POLY1305)
++                                sk_SSL_CIPHER_push(prio_chacha, c);
++                        }
++                        prio = prio_chacha;
++                    }
++                }
++            }
++        }
++# endif
+     } else {
+         prio = clnt;
+         allow = srvr;
+@@ -3694,6 +3743,9 @@
+             break;
+         }
+     }
++#ifndef OPENSSL_NO_CHACHA
++    sk_SSL_CIPHER_free(prio_chacha);
++#endif
+     return (ret);
+ }
+
+diff --git a/ssl/ssl_conf.c b/ssl/ssl_conf.c
+--- a/ssl/ssl_conf.c
++++ b/ssl/ssl_conf.c
+@@ -358,6 +358,7 @@
+         SSL_FLAG_TBL("UnsafeLegacyRenegotiation",
+                      SSL_OP_ALLOW_UNSAFE_LEGACY_RENEGOTIATION),
+         SSL_FLAG_TBL_INV("EncryptThenMac", SSL_OP_NO_ENCRYPT_THEN_MAC),
++        SSL_FLAG_TBL("PrioritizeChaCha", SSL_OP_PRIORITIZE_CHACHA),
+     };
+     if (value == NULL)
+         return -3;
+@@ -545,6 +546,7 @@
+     SSL_CONF_CMD_SWITCH("legacy_server_connect", SSL_CONF_FLAG_SERVER),
+     SSL_CONF_CMD_SWITCH("no_resumption_on_reneg", SSL_CONF_FLAG_SERVER),
+     SSL_CONF_CMD_SWITCH("no_legacy_server_connect", SSL_CONF_FLAG_SERVER),
++    SSL_CONF_CMD_SWITCH("prioritize_chacha", SSL_CONF_FLAG_SERVER),
+     SSL_CONF_CMD_SWITCH("strict", 0),
+     SSL_CONF_CMD_STRING(SignatureAlgorithms, "sigalgs", 0),
+     SSL_CONF_CMD_STRING(ClientSignatureAlgorithms, "client_sigalgs", 0),
+@@ -606,6 +608,8 @@
+     {SSL_OP_NO_SESSION_RESUMPTION_ON_RENEGOTIATION, 0},
+     /* no_legacy_server_connect */
+     {SSL_OP_LEGACY_SERVER_CONNECT, SSL_TFLAG_INV},
++    /* chacha reprioritization */
++    {SSL_OP_PRIORITIZE_CHACHA, 0},
+     {SSL_CERT_FLAG_TLS_STRICT, SSL_TFLAG_CERT}, /* strict */
+ };
