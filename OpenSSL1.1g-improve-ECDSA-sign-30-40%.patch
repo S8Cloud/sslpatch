@@ -3752,3 +3752,4 @@ index f06680a..5b0ee4e 100644
  # define EC_F_ECP_NISTZ256_MULT_PRECOMPUTE                243
  # define EC_F_ECP_NISTZ256_POINTS_MUL                     241
  # define EC_F_ECP_NISTZ256_PRE_COMP_NEW                   244
+ 
