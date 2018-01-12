@@ -542,3 +542,4 @@ index c8aa9aa..c606a9b 100644
  
  int X25519(uint8_t out_shared_key[32], const uint8_t private_key[32],
             const uint8_t peer_public_value[32]) {
+ 
