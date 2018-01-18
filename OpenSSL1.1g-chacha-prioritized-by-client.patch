@@ -154,3 +154,5 @@ diff --git a/ssl/ssl_conf.c b/ssl/ssl_conf.c
 +    {SSL_OP_PRIORITIZE_CHACHA, 0},
      {SSL_CERT_FLAG_TLS_STRICT, SSL_TFLAG_CERT}, /* strict */
  };
+ 
+ 
