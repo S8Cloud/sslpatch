@@ -1,27 +1,3 @@
-What we do now:
-We use a static record size of 4K. This gives a good balance of latency and
-throughput.
-
-Optimize latency:
-By initialy sending small (1 TCP segment) sized records, we are able to avoid
-HoL blocking of the first byte. This means TTFB is sometime lower by a whole
-RTT.
-
-Optimizing throughput:
-By sending increasingly larger records later in the connection, when HoL is not
-a problem, we reduce the overhead of TLS record (29 bytes per record with
-GCM/CHACHA-POLY).
-
-Logic:
-Start each connection with small records (1369 byte default, change with
-ssl_dyn_rec_size_lo). After a given number of records (40, change with
-ssl_dyn_rec_threshold) start sending larger records (4229, ssl_dyn_rec_size_hi).
-Eventually after the same number of records, start sending the largest records
-(ssl_buffer_size).
-In case the connection idles for a given amount of time (1s,
-ssl_dyn_rec_timeout), the process repeats itself (i.e. begin sending small
-records again).
-
 --- a/src/event/ngx_event_openssl.c
 +++ b/src/event/ngx_event_openssl.c
 @@ -1131,6 +1131,7 @@
