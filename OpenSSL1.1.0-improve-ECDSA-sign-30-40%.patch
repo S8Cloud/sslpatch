@@ -1,19 +1,14 @@
-From cfc32a1e540e4f542e5e88415f45657hbbd3008 Mon Sep 17 00:00:00 2001
+From cfc32a1e56767jujujuu415f533f4f6bd3008 Mon Sep 17 00:00:00 2001
 From: Buik / Bassie <bassie@buik.locale>
-Date: Sat, 6 Jan 2018 08:21:45 +0100
+Date: Wed, 28 Mar 2018 23:59:56 +0100
 
-Subject: OpenSSL1.1g - 30-40% ECDSA performance improvement
+Subject: OpenSSL1.1h - 30-40% ECDSA performance improvement
 
-The purpose of this patch is backward compatibility on OpenSSL 1.1g.
+The purpose of this patch is backward compatibility on OpenSSL 1.1h.
 
 Please note that the x86_64-xlate.pl assambler is patched because the assambler's, 
 new cfi_directive is needed by the the optimized ecp_nistz256-x86_64.pl Perl script.
-Cfi_directive is not available at OpenSSL 1.1g GA.
-
-//
-Ec/ecp_nistz256.c: improve ECDSA sign by 30-40% is based on RT#3810, 
-which added dedicated modular inversion.
-ECDSA verify results improves as well, but not as much.
+Cfi_directive is not available at OpenSSL 1.1h GA.
 ---
  ECDSA-PATCH-CHANGELOG                |    9 +
  crypto/ec/asm/ecp_nistz256-armv8.pl  |  309 +++-
@@ -34,7 +29,7 @@ index 0000000..f5799bf
 --- /dev/null
 +++ b/ECDSA-PATCH-CHANGELOG
 @@ -0,0 +1,9 @@
-+Changelog [PATCH] OpenSSL1.1g - 30-40% ECDSA performance improvement
++Changelog [PATCH] OpenSSL1.1h - 30-40% ECDSA performance improvement
 +* Sat, 6 Jan 2018 08:21:45 +0100
 +- Rebuilt to host the new upstream code (6 Jan 2018).
 +* Fri, 5 Jan 2018 20:45:22 +0100
@@ -3752,4 +3747,4 @@ index f06680a..5b0ee4e 100644
  # define EC_F_ECP_NISTZ256_MULT_PRECOMPUTE                243
  # define EC_F_ECP_NISTZ256_POINTS_MUL                     241
  # define EC_F_ECP_NISTZ256_PRE_COMP_NEW                   244
- 
+
