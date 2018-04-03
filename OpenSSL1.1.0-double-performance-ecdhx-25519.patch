@@ -1,21 +1,11 @@
-From cfc32a1e540e44546h5e88415f533f4f6bd3008 Mon Sep 17 00:00:00 2001
+From cfc32a1e540e4yjyjyj415f533f4f6bd3008 Mon Sep 17 00:00:00 2001
 From: Buik / Bassie <bassie@buik.locale>
-Date: Sat, 6 Jan 2018 12:21:45 +0100
+Date: Wed, 28 Mar 2018 23:56:12 +0100
 
-Subject: [PATCH] OpenSSL1.1g ec/curve25519.c: "double" ecdhx25519 performance on 64-bit platforms.
+Subject: [PATCH] OpenSSL1.1h ec/curve25519.c: "double" ecdhx25519 performance on 64-bit platforms.
 
-The purpose of this patch is backward compatibility on OpenSSL 1.1g.
+The purpose of this patch is backward compatibility on OpenSSL 1.1h.
 Based on OpenSSL 1.1.1dev.
-
-//
-"Double" is in quotes because improvement coefficient varies
-significantly depending on platform and compiler. You're likely
-to measure ~2x improvement on popular desktop and server processors,
-but not so much on mobile ones, even minor regression on ARM
-Cortex series. Latter is because they have rather "weak" umulh
-instruction. On low-end x86_64 problem is that contemporary gcc
-and clang tend to opt for double-precision shift for >>51, which
-can be devastatingly slow on some processors.
 ---
  crypto/ec/curve25519.c | 489 +++++++++++++++++++++++++++++++++++++++-
  1 file changed, 483 insertions(+), 6 deletions(-)
@@ -542,4 +532,4 @@ index c8aa9aa..c606a9b 100644
  
  int X25519(uint8_t out_shared_key[32], const uint8_t private_key[32],
             const uint8_t peer_public_value[32]) {
- 
+
