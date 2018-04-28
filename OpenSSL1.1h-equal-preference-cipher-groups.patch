@@ -1,7 +1,7 @@
-From a424fefbrgtht46567hhbuk676ujjj312 Mon Sep 17 00:00:00 2001
+From a424fejyjyjy76ujjj312 Mon Sep 17 00:00:00 2001
 From: Bassie / Buik
-Date: Sat, 6 Jan 2018 23:11:23 +0100
-Subject: [PATCH] OpenSSL 1.1.0g - Equal preference cipher groups
+Date: Sat, 25 Apr 2018 21:11:23 +0100
+Subject: [PATCH] OpenSSL 1.1.0h - Equal preference cipher groups
 
 Feature: OpenSSL Equal preference cipher groups.
 Source: https://boringssl.googlesource.com/boringssl/+/858a88daf27975f67d9f63e18f95645be2886bfb%5E%21
@@ -226,7 +226,7 @@ index 9ea02dc..a36103c 100644
          }
      }
 diff --git a/ssl/ssl_ciph.c b/ssl/ssl_ciph.c
-index da6e298..3a4f5b4 100644
+index 7a393cb..9ef1231 100644
 --- a/ssl/ssl_ciph.c
 +++ b/ssl/ssl_ciph.c
 @@ -214,6 +214,7 @@ typedef struct cipher_order_st {
@@ -478,7 +478,7 @@ index da6e298..3a4f5b4 100644
                            &tail);
  
      /*
-@@ -1381,20 +1441,20 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
+@@ -1381,16 +1441,16 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
       * disabled. (For applications that allow them, they aren't too bad, but
       * we prefer authenticated ciphers.)
       */
@@ -486,11 +486,6 @@ index da6e298..3a4f5b4 100644
 +    ssl_cipher_apply_rule(0, 0, SSL_aNULL, 0, 0, 0, 0, CIPHER_ORD, -1, 0, &head,
                            &tail);
  
-     /*
-      * ssl_cipher_apply_rule(0, 0, SSL_aDH, 0, 0, 0, 0, CIPHER_ORD, -1,
--     * &head, &tail);
-+     * 0, &head, &tail);
-      */
 -    ssl_cipher_apply_rule(0, SSL_kRSA, 0, 0, 0, 0, 0, CIPHER_ORD, -1, &head,
 +    ssl_cipher_apply_rule(0, SSL_kRSA, 0, 0, 0, 0, 0, CIPHER_ORD, -1, 0, &head,
                            &tail);
@@ -504,7 +499,7 @@ index da6e298..3a4f5b4 100644
                            &tail);
  
      /*
-@@ -1411,7 +1471,7 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
+@@ -1407,7 +1467,7 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
       * TODO(openssl-team): is there an easier way to accomplish all this?
       */
      ssl_cipher_apply_rule(0, 0, 0, 0, 0, TLS1_2_VERSION, 0, CIPHER_BUMP, -1,
@@ -513,7 +508,7 @@ index da6e298..3a4f5b4 100644
  
      /*
       * Irrespective of strength, enforce the following order:
-@@ -1427,14 +1487,14 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
+@@ -1423,14 +1483,14 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
       * reverse order of preference.
       */
      ssl_cipher_apply_rule(0, 0, 0, 0, SSL_AEAD, 0, 0, CIPHER_BUMP, -1,
@@ -532,7 +527,7 @@ index da6e298..3a4f5b4 100644
  
      /*
       * We also need cipher aliases for selecting based on the rule_str.
-@@ -1448,9 +1508,8 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
+@@ -1444,9 +1504,8 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
      num_of_alias_max = num_of_ciphers + num_of_group_aliases + 1;
      ca_list = OPENSSL_malloc(sizeof(*ca_list) * num_of_alias_max);
      if (ca_list == NULL) {
@@ -543,7 +538,7 @@ index da6e298..3a4f5b4 100644
      }
      ssl_cipher_collect_aliases(ca_list, num_of_group_aliases,
                                 disabled_mkey, disabled_auth, disabled_enc,
-@@ -1475,19 +1534,19 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
+@@ -1471,19 +1530,19 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
  
      OPENSSL_free(ca_list);      /* Not needed anymore */
  
@@ -571,7 +566,7 @@ index da6e298..3a4f5b4 100644
  
      /*
       * The cipher selection for the list is done. The ciphers are added
-@@ -1496,32 +1555,65 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
+@@ -1492,32 +1551,65 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method, STACK
      for (curr = head; curr != NULL; curr = curr->next) {
          if (curr->active
              && (!FIPS_mode() || curr->cipher->algo_strength & SSL_FIPS)) {
@@ -965,3 +960,4 @@ index c7cd9eb..7feaea2 100644
  
              if (cipher == NULL) {
                  SSLerr(SSL_F_TLS_POST_PROCESS_CLIENT_HELLO,
+
