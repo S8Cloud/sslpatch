@@ -1,5 +1,9 @@
 # Usefull SSL (OpenSSL & BoringSSL) & Nginx Patch Bundle
 
+# For Chinese speakers you may refer to
+
+**[中文教程](https://dcc.cat/nginx.html)**
+
 # For OpenSSL
 
 ### OpenSSL 1.1.0h
@@ -121,7 +125,7 @@ patch -p1 < /path/to/sslpatch/Nginx_cloudflare_patch_combined_kn007.patch
 * if you are using BoringSSL and you want to enable OCSP Staping for your server patch the following patch to `Nginx`
 
 ```
-patch -p1 < /path/to/sslpatch/patch BoringSSL-enable-OCSP.patch
+patch -p1 < /path/to/sslpatch/BoringSSL-enable-OCSP.patch
 ```
 
 activated it by:
