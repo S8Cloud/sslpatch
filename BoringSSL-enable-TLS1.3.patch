@@ -17,7 +17,7 @@ diff --git a/ssl/s3_lib.cc b/ssl/s3_lib.cc
 index a3fc8d7..b28bbc8 100644
 --- a/ssl/s3_lib.cc
 +++ b/ssl/s3_lib.cc
-@@ -201,7 +201,7 @@ bool ssl3_new(SSL *ssl) {
+@@ -202,7 +202,7 @@ bool ssl3_new(SSL *ssl)
    // TODO(davidben): Move this field into |s3|, have it store the normalized
    // protocol version, and implement this pre-negotiation quirk in |SSL_version|
    // at the API boundary rather than in internal state.
@@ -30,7 +30,7 @@ diff --git a/ssl/ssl_test.cc b/ssl/ssl_test.cc
 index 12f044c..cfc4af1 100644
 --- a/ssl/ssl_test.cc
 +++ b/ssl/ssl_test.cc
-@@ -2607,7 +2607,7 @@ TEST(SSLTest, SetVersion) {
+@@ -2615,7 +2615,7 @@ TEST(SSLTest, SetVersion) {
  
    // Zero is the default version.
    EXPECT_TRUE(SSL_CTX_set_max_proto_version(ctx.get(), 0));
@@ -39,7 +39,7 @@ index 12f044c..cfc4af1 100644
    EXPECT_TRUE(SSL_CTX_set_min_proto_version(ctx.get(), 0));
    EXPECT_EQ(TLS1_VERSION, ctx->conf_min_version);
  
-@@ -2640,7 +2640,7 @@ TEST(SSLTest, SetVersion) {
+@@ -2648,7 +2648,7 @@ TEST(SSLTest, SetVersion) {
    EXPECT_FALSE(SSL_CTX_set_min_proto_version(ctx.get(), 0x1234));
  
    EXPECT_TRUE(SSL_CTX_set_max_proto_version(ctx.get(), 0));
@@ -53,11 +53,10 @@ index 73ea26f..da10cb2 100644
 --- a/ssl/ssl_versions.cc
 +++ b/ssl/ssl_versions.cc
 @@ -189,7 +189,7 @@ static bool set_max_version(const SSL_PROTOCOL_METHOD *method, uint16_t *out,
-                             uint16_t version) {
+                            uint16_t version) {
    // Zero is interpreted as the default maximum version.
    if (version == 0) {
 -    *out = TLS1_2_VERSION;
 +    *out = TLS1_3_VERSION;
      return true;
    }
- 
