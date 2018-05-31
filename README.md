@@ -1,8 +1,8 @@
 # Usefull SSL (OpenSSL & BoringSSL) & Nginx Patch Bundle
 
-# For Chinese speakers you may refer to
+### For Chinese speakers you may refer to [this](https://dcc.cat/nginx.html)
 
-**[中文教程](https://dcc.cat/nginx.html)**
+### [中文教程](https://dcc.cat/nginx.html)
 
 # For OpenSSL
 
