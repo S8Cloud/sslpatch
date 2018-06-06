@@ -63,35 +63,32 @@ index 73a9bae9..4cd56c4b 100644
          ngx_module_name=ngx_http_static_module
          ngx_module_incs=
 diff --git a/auto/options b/auto/options
-index 59f0449d..8fa3881f 100644
+index 59f0449d..1414e824 100644
 --- a/auto/options
 +++ b/auto/options
-@@ -58,7 +58,9 @@ HTTP_CACHE=YES
- HTTP_CHARSET=YES
+@@ -59,6 +59,8 @@ HTTP_CHARSET=YES
  HTTP_GZIP=YES
  HTTP_SSL=NO
-+HTTP_SPDY=NO
  HTTP_V2=NO
++HTTP_SPDY=NO
 +HTTP_V2_HPACK_ENC=NO
  HTTP_SSI=YES
  HTTP_POSTPONE=NO
  HTTP_REALIP=NO
-@@ -222,7 +224,9 @@ $0: warning: the \"--with-ipv6\" option is deprecated"
-         --http-scgi-temp-path=*)         NGX_HTTP_SCGI_TEMP_PATH="$value" ;;
+@@ -223,6 +225,8 @@ $0: warning: the \"--with-ipv6\" option is deprecated"
  
          --with-http_ssl_module)          HTTP_SSL=YES               ;;
-+        --with-http_spdy_module)         HTTP_SPDY=YES              ;;
          --with-http_v2_module)           HTTP_V2=YES                ;;
++        --with-http_spdy_module)         HTTP_SPDY=YES              ;;
 +        --with-http_v2_hpack_enc)        HTTP_V2_HPACK_ENC=YES      ;;
          --with-http_realip_module)       HTTP_REALIP=YES            ;;
          --with-http_addition_module)     HTTP_ADDITION=YES          ;;
          --with-http_xslt_module)         HTTP_XSLT=YES              ;;
-@@ -433,7 +437,9 @@ cat << END
-   --with-file-aio                    enable file AIO support
+@@ -434,6 +438,8 @@ cat << END
  
    --with-http_ssl_module             enable ngx_http_ssl_module
-+  --with-http_spdy_module            enable ngx_http_spdy_module
    --with-http_v2_module              enable ngx_http_v2_module
++  --with-http_spdy_module            enable ngx_http_spdy_module
 +  --with-http_v2_hpack_enc           enable ngx_http_v2_hpack_enc
    --with-http_realip_module          enable ngx_http_realip_module
    --with-http_addition_module        enable ngx_http_addition_module
@@ -297,7 +294,7 @@ index 623d851d..9996e473 100644
  typedef struct ngx_ssl_sess_id_s  ngx_ssl_sess_id_t;
  
 diff --git a/src/http/modules/ngx_http_ssl_module.c b/src/http/modules/ngx_http_ssl_module.c
-index 7e954412..7beaf633 100644
+index 7e954412..a0079ae7 100644
 --- a/src/http/modules/ngx_http_ssl_module.c
 +++ b/src/http/modules/ngx_http_ssl_module.c
 @@ -239,6 +239,41 @@ static ngx_command_t  ngx_http_ssl_commands[] = {
@@ -351,7 +348,7 @@ index 7e954412..7beaf633 100644
      ngx_http_connection_t  *hc;
  #endif
 -#if (NGX_HTTP_V2 || NGX_DEBUG)
-+#if (NGX_HTTP_V2 || NGX_HTTP_SPDY || NGX_DEBUG)
+++#if (NGX_HTTP_V2 || NGX_HTTP_SPDY || NGX_DEBUG)
      ngx_connection_t       *c;
  
      c = ngx_ssl_get_connection(ssl_conn);
@@ -363,7 +360,7 @@ index 7e954412..7beaf633 100644
 +#if (NGX_HTTP_V2 || NGX_HTTP_SPDY)
      hc = c->data;
 +#endif
-+
++ 
 +#if (NGX_HTTP_V2 && NGX_HTTP_SPDY)
 +    if (hc->addr_conf->http2 && hc->addr_conf->spdy) {
 +        srv = (unsigned char *) NGX_HTTP_V2_ALPN_ADVERTISE
@@ -391,7 +388,7 @@ index 7e954412..7beaf633 100644
      {
          srv = (unsigned char *) NGX_HTTP_NPN_ADVERTISE;
          srvlen = sizeof(NGX_HTTP_NPN_ADVERTISE) - 1;
-@@ -411,19 +464,32 @@ static int
+@@ -411,19 +464,31 @@ static int
  ngx_http_ssl_npn_advertised(ngx_ssl_conn_t *ssl_conn,
      const unsigned char **out, unsigned int *outlen, void *arg)
  {
@@ -410,7 +407,6 @@ index 7e954412..7beaf633 100644
  
      hc = c->data;
 +#endif
-+
 +#if (NGX_HTTP_V2 && NGX_HTTP_SPDY)
 +    if (hc->addr_conf->http2 && hc->addr_conf->spdy) {
 +        *out = (unsigned char *) NGX_HTTP_V2_NPN_ADVERTISE
@@ -426,7 +422,7 @@ index 7e954412..7beaf633 100644
      if (hc->addr_conf->http2) {
          *out =
              (unsigned char *) NGX_HTTP_V2_NPN_ADVERTISE NGX_HTTP_NPN_ADVERTISE;
-@@ -431,6 +497,20 @@ ngx_http_ssl_npn_advertised(ngx_ssl_conn_t *ssl_conn,
+@@ -431,6 +496,20 @@ ngx_http_ssl_npn_advertised(ngx_ssl_conn_t *ssl_conn,
  
          return SSL_TLSEXT_ERR_OK;
      }
@@ -447,7 +443,7 @@ index 7e954412..7beaf633 100644
      }
  #endif
  
-@@ -564,6 +644,11 @@ ngx_http_ssl_create_srv_conf(ngx_conf_t *cf)
+@@ -564,6 +643,11 @@ ngx_http_ssl_create_srv_conf(ngx_conf_t *cf)
      sscf->session_ticket_keys = NGX_CONF_UNSET_PTR;
      sscf->stapling = NGX_CONF_UNSET;
      sscf->stapling_verify = NGX_CONF_UNSET;
@@ -459,7 +455,7 @@ index 7e954412..7beaf633 100644
  
      return sscf;
  }
-@@ -629,6 +714,20 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
+@@ -629,6 +713,20 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
      ngx_conf_merge_str_value(conf->stapling_responder,
                           prev->stapling_responder, "");
  
@@ -480,7 +476,7 @@ index 7e954412..7beaf633 100644
      conf->ssl.log = cf->log;
  
      if (conf->enable) {
-@@ -809,6 +908,28 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
+@@ -809,6 +907,28 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
  
      }
  
