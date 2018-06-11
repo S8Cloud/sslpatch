@@ -82,11 +82,11 @@ BoringSSL's TLSv1.3 (especially draft 23) has been production-used by Google and
 
 I myself am using BoringSSL and I forked BoringSSL and made TLSv1.3 enabled by default (using the `BoringSSL-enable-TLS1.3.patch`)
 
-* to enable TLSv1.3 draft 23 (stable & recommended)
+* to enable TLSv1.3 draft 23 & draft 28 (master version)
 
 ```
-# Note that golang and cmake should be installed first
-git clone -b chromium-stable https://github.com/S8Cloud/boringssl.git && cd boringssl
+git clone -b master https://boringssl.googlesource.com/boringssl && cd boringssl
+patch -p1 < /path/to/sslpatch/BoringSSL-enable-TLS1.3.patch
 cmake -DCMAKE_BUILD_TYPE=Release && make -j2
 cd .. && mkdir -p .openssl/lib && cd .openssl && ln -s ../include .
 cd .. && cp build/crypto/libcrypto.* build/ssl/libssl.* .openssl/lib && cd ..
@@ -94,16 +94,7 @@ cd .. && cp build/crypto/libcrypto.* build/ssl/libssl.* .openssl/lib && cd ..
 
 And then compile nginx using `--with-openssl=/path/to/boringssl`
 
-* to enable TLSv1.3 draft 23 & draft 28 (master and unstable for now)
-
-```
-git clone -b master https://boringssl.googlesource.com/boringssl && cd boringssl
-patch -p1 < /path/to/sslpatch/BoringSSL-enable-TLS1.3.patch
-```
-
-building process is the same with above.
-
-* or you need TLSv1.3 draft 18
+* or you need TLSv1.3 draft 18 (old version)
 
 Just clone `2987` branch of my BoringSSL fork and build it.
 
