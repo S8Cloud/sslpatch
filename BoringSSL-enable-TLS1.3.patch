@@ -1,23 +1,19 @@
-From cfc32a1e540e4f542egggd3008 Mon Sep 17 00:00:00 2001
-From: Buik / Bassie <bassie@buik.locale>
-Date: Tue, 09 Apr 2018 12:55:23 +0800
+From 3525dce6ec73a35255aecf0dfd1962509e4a3374 Mon Sep 17 00:00:00 2001
+From: S8Cloud <github@live.hk>
+Date: Mon, 21 May 2018 23:07:32 +0800
+Subject: [PATCH] Enable TLSv1.3 draft 28 & draft 23
 
-Subject: [PATCH] Enable TLS 1.3 on BoringSSL
-
-Enable TLS 1.3 on BoringSSL.
-Tested on Nginx 1.13.11 with BoringSSL chromium-stable and BoringSSL master (git branch April 09 2018)
-
---- 
- s3_lib.cc       | 2 +-
- ssl_test.cc     | 4 ++--
- ssl_versions.cc | 2 +-
+---
+ ssl/s3_lib.cc       | 2 +-
+ ssl/ssl_test.cc     | 4 ++--
+ ssl/ssl_versions.cc | 2 +-
  3 files changed, 4 insertions(+), 4 deletions(-)
 
 diff --git a/ssl/s3_lib.cc b/ssl/s3_lib.cc
-index a3fc8d7..b28bbc8 100644
+index d6a25b76e..8a87c7f16 100644
 --- a/ssl/s3_lib.cc
 +++ b/ssl/s3_lib.cc
-@@ -202,7 +202,7 @@ bool ssl3_new(SSL *ssl)
+@@ -202,7 +202,7 @@ bool ssl3_new(SSL *ssl) {
    // TODO(davidben): Move this field into |s3|, have it store the normalized
    // protocol version, and implement this pre-negotiation quirk in |SSL_version|
    // at the API boundary rather than in internal state.
@@ -27,7 +23,7 @@ index a3fc8d7..b28bbc8 100644
  }
  
 diff --git a/ssl/ssl_test.cc b/ssl/ssl_test.cc
-index 12f044c..cfc4af1 100644
+index 6ff794811..b18c243fc 100644
 --- a/ssl/ssl_test.cc
 +++ b/ssl/ssl_test.cc
 @@ -2615,7 +2615,7 @@ TEST(SSLTest, SetVersion) {
@@ -49,14 +45,15 @@ index 12f044c..cfc4af1 100644
    EXPECT_EQ(TLS1_1_VERSION, ctx->conf_min_version);
  }
 diff --git a/ssl/ssl_versions.cc b/ssl/ssl_versions.cc
-index 73ea26f..da10cb2 100644
+index 9588dd3ad..c46502a43 100644
 --- a/ssl/ssl_versions.cc
 +++ b/ssl/ssl_versions.cc
 @@ -189,7 +189,7 @@ static bool set_max_version(const SSL_PROTOCOL_METHOD *method, uint16_t *out,
-                            uint16_t version) {
+                             uint16_t version) {
    // Zero is interpreted as the default maximum version.
    if (version == 0) {
 -    *out = TLS1_2_VERSION;
 +    *out = TLS1_3_VERSION;
      return true;
    }
+ 
