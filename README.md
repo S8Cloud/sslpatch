@@ -96,10 +96,11 @@ And then compile nginx using `--with-openssl=/path/to/boringssl`
 
 * or you need TLSv1.3 draft 18 (old version)
 
-Just clone `2987` branch of my BoringSSL fork and build it.
+Just clone `2987` branch of BoringSSL fork and build it.
 
 ```
-git clone -b 2987 https://github.com/S8Cloud/boringssl.git
+git clone -b 2987 https://boringssl.googlesource.com/boringssl && cd boringssl
+patch -p1 < /path/to/sslpatch/BoringSSL-enable-TLS1.3-old.patch
 ```
 
 # For Nginx

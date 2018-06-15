@@ -1,0 +1,50 @@
+From 1a02e41697e4528646903d634602669d2fb02bd9 Mon Sep 17 00:00:00 2001
+From: S8Cloud <github@live.hk>
+Date: Tue, 22 May 2018 20:59:02 +0800
+Subject: [PATCH] Enable TLSv1.3 draft18
+
+---
+ ssl/s3_lib.c    | 2 +-
+ ssl/ssl_lib.c   | 2 +-
+ ssl/ssl_test.cc | 2 +-
+ 3 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/ssl/s3_lib.c b/ssl/s3_lib.c
+index 703941828..6c704519b 100644
+--- a/ssl/s3_lib.c
++++ b/ssl/s3_lib.c
+@@ -188,7 +188,7 @@ int ssl3_new(SSL *ssl) {
+    * TODO(davidben): Move this field into |s3|, have it store the normalized
+    * protocol version, and implement this pre-negotiation quirk in |SSL_version|
+    * at the API boundary rather than in internal state. */
+-  ssl->version = TLS1_2_VERSION;
++  ssl->version = TLS1_3_VERSION;
+   return 1;
+ }
+ 
+diff --git a/ssl/ssl_lib.c b/ssl/ssl_lib.c
+index e0ab8030c..05c978fe2 100644
+--- a/ssl/ssl_lib.c
++++ b/ssl/ssl_lib.c
+@@ -992,7 +992,7 @@ static int set_max_version(const SSL_PROTOCOL_METHOD *method, uint16_t *out,
+     *out = method->max_version;
+     /* TODO(svaldez): Enable TLS 1.3 by default once fully implemented. */
+     if (*out > TLS1_2_VERSION) {
+-      *out = TLS1_2_VERSION;
++      *out = TLS1_3_VERSION;
+     }
+     return 1;
+   }
+diff --git a/ssl/ssl_test.cc b/ssl/ssl_test.cc
+index 952ac1142..e5966ac75 100644
+--- a/ssl/ssl_test.cc
++++ b/ssl/ssl_test.cc
+@@ -3171,7 +3171,7 @@ int main() {
+       !TestBadSSL_SESSIONEncoding(kBadSessionVersion) ||
+       !TestBadSSL_SESSIONEncoding(kBadSessionTrailingData) ||
+       // TODO(svaldez): Update this when TLS 1.3 is enabled by default.
+-      !TestDefaultVersion(SSL3_VERSION, TLS1_2_VERSION, &TLS_method) ||
++      !TestDefaultVersion(SSL3_VERSION, TLS1_3_VERSION, &TLS_method) ||
+       !TestDefaultVersion(SSL3_VERSION, SSL3_VERSION, &SSLv3_method) ||
+       !TestDefaultVersion(TLS1_VERSION, TLS1_VERSION, &TLSv1_method) ||
+       !TestDefaultVersion(TLS1_1_VERSION, TLS1_1_VERSION, &TLSv1_1_method) ||
