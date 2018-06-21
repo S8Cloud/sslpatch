@@ -1,20 +1,13 @@
-From cfc32agfht67676762egggd3008 Mon Sep 17 00:00:00 2001
-From: Buik / Bassie <bassie@buik.locale>
-Date: Fri, 08 Jun 2018 23:22:12 +0800
+From f84fd976feea609cf36b59a632c22928ac683854 Mon Sep 17 00:00:00 2001
+From: S8Cloud <dcc@live.hk>
+Date: Thu, 21 Jun 2018 10:02:35 +0800
+Subject: [PATCH] enable tls1.3
 
-Subject: [PATCH] Enable TLS 1.3 on BoringSSL
-
- openssl/ssl.h     | 2 +-
- s3_lib.cc         | 2 +-
- ssl_test.cc       | 4 ++--
- ssl_versions.cc   | 2 +-
- 4 files changed, 5 insertions(+), 5 deletions(-)
- 
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index eb3713f..bbc13b2 100644
+index 5a44020ee..277b1fbec 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -3420,7 +3420,7 @@ OPENSSL_EXPORT int SSL_renegotiate_pending(SSL *ssl);
+@@ -3426,7 +3426,7 @@ OPENSSL_EXPORT int SSL_renegotiate_pending(SSL *ssl);
  OPENSSL_EXPORT int SSL_total_renegotiations(const SSL *ssl);
  
  enum tls13_variant_t {
@@ -24,7 +17,7 @@ index eb3713f..bbc13b2 100644
    tls13_draft28,
  };
 diff --git a/ssl/s3_lib.cc b/ssl/s3_lib.cc
-index d6a25b7..8a87c7f 100644
+index d6a25b76e..8a87c7f16 100644
 --- a/ssl/s3_lib.cc
 +++ b/ssl/s3_lib.cc
 @@ -202,7 +202,7 @@ bool ssl3_new(SSL *ssl) {
@@ -37,7 +30,7 @@ index d6a25b7..8a87c7f 100644
  }
  
 diff --git a/ssl/ssl_test.cc b/ssl/ssl_test.cc
-index 6ff7948..b18c243 100644
+index d6e071315..96155aaa6 100644
 --- a/ssl/ssl_test.cc
 +++ b/ssl/ssl_test.cc
 @@ -2615,7 +2615,7 @@ TEST(SSLTest, SetVersion) {
@@ -59,7 +52,7 @@ index 6ff7948..b18c243 100644
    EXPECT_EQ(TLS1_1_VERSION, ctx->conf_min_version);
  }
 diff --git a/ssl/ssl_versions.cc b/ssl/ssl_versions.cc
-index 9588dd3..c46502a 100644
+index 9588dd3ad..c46502a43 100644
 --- a/ssl/ssl_versions.cc
 +++ b/ssl/ssl_versions.cc
 @@ -189,7 +189,7 @@ static bool set_max_version(const SSL_PROTOCOL_METHOD *method, uint16_t *out,
@@ -70,4 +63,4 @@ index 9588dd3..c46502a 100644
 +    *out = TLS1_3_VERSION;
      return true;
    }
- 
+
