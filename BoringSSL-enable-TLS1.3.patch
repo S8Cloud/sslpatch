@@ -1,13 +1,8 @@
-From f84fd976feea609cf36b59a632c22928ac683854 Mon Sep 17 00:00:00 2001
-From: S8Cloud <dcc@live.hk>
-Date: Thu, 21 Jun 2018 10:02:35 +0800
-Subject: [PATCH] enable tls1.3
-
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index 5a44020ee..277b1fbec 100644
+index 4b42f9a7..c5b75a19 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -3426,7 +3426,7 @@ OPENSSL_EXPORT int SSL_renegotiate_pending(SSL *ssl);
+@@ -3425,7 +3425,7 @@ OPENSSL_EXPORT int SSL_renegotiate_pending(SSL *ssl);
  OPENSSL_EXPORT int SSL_total_renegotiations(const SSL *ssl);
  
  enum tls13_variant_t {
@@ -17,7 +12,7 @@ index 5a44020ee..277b1fbec 100644
    tls13_draft28,
  };
 diff --git a/ssl/s3_lib.cc b/ssl/s3_lib.cc
-index d6a25b76e..8a87c7f16 100644
+index d6a25b76..8a87c7f1 100644
 --- a/ssl/s3_lib.cc
 +++ b/ssl/s3_lib.cc
 @@ -202,7 +202,7 @@ bool ssl3_new(SSL *ssl) {
@@ -30,10 +25,24 @@ index d6a25b76e..8a87c7f16 100644
  }
  
 diff --git a/ssl/ssl_test.cc b/ssl/ssl_test.cc
-index d6e071315..96155aaa6 100644
+index 30fcbab4..b31c22dc 100644
 --- a/ssl/ssl_test.cc
 +++ b/ssl/ssl_test.cc
-@@ -2615,7 +2615,7 @@ TEST(SSLTest, SetVersion) {
+@@ -816,11 +816,11 @@ static void ExpectDefaultVersion(uint16_t min_version, uint16_t max_version,
+ 
+ TEST(SSLTest, DefaultVersion) {
+   // TODO(svaldez): Update this when TLS 1.3 is enabled by default.
+-  ExpectDefaultVersion(TLS1_VERSION, TLS1_2_VERSION, &TLS_method);
++  ExpectDefaultVersion(TLS1_VERSION, TLS1_3_VERSION, &TLS_method);
+   ExpectDefaultVersion(TLS1_VERSION, TLS1_VERSION, &TLSv1_method);
+   ExpectDefaultVersion(TLS1_1_VERSION, TLS1_1_VERSION, &TLSv1_1_method);
+   ExpectDefaultVersion(TLS1_2_VERSION, TLS1_2_VERSION, &TLSv1_2_method);
+-  ExpectDefaultVersion(TLS1_1_VERSION, TLS1_2_VERSION, &DTLS_method);
++  ExpectDefaultVersion(TLS1_1_VERSION, TLS1_3_VERSION, &DTLS_method);
+   ExpectDefaultVersion(TLS1_1_VERSION, TLS1_1_VERSION, &DTLSv1_method);
+   ExpectDefaultVersion(TLS1_2_VERSION, TLS1_2_VERSION, &DTLSv1_2_method);
+ }
+@@ -2591,7 +2591,7 @@ TEST(SSLTest, SetVersion) {
  
    // Zero is the default version.
    EXPECT_TRUE(SSL_CTX_set_max_proto_version(ctx.get(), 0));
@@ -42,7 +51,7 @@ index d6e071315..96155aaa6 100644
    EXPECT_TRUE(SSL_CTX_set_min_proto_version(ctx.get(), 0));
    EXPECT_EQ(TLS1_VERSION, ctx->conf_min_version);
  
-@@ -2648,7 +2648,7 @@ TEST(SSLTest, SetVersion) {
+@@ -2625,7 +2625,7 @@ TEST(SSLTest, SetVersion) {
    EXPECT_FALSE(SSL_CTX_set_min_proto_version(ctx.get(), 0x1234));
  
    EXPECT_TRUE(SSL_CTX_set_max_proto_version(ctx.get(), 0));
@@ -52,10 +61,10 @@ index d6e071315..96155aaa6 100644
    EXPECT_EQ(TLS1_1_VERSION, ctx->conf_min_version);
  }
 diff --git a/ssl/ssl_versions.cc b/ssl/ssl_versions.cc
-index 9588dd3ad..c46502a43 100644
+index a5a7cd97..75db327a 100644
 --- a/ssl/ssl_versions.cc
 +++ b/ssl/ssl_versions.cc
-@@ -189,7 +189,7 @@ static bool set_max_version(const SSL_PROTOCOL_METHOD *method, uint16_t *out,
+@@ -184,7 +184,7 @@ static bool set_max_version(const SSL_PROTOCOL_METHOD *method, uint16_t *out,
                              uint16_t version) {
    // Zero is interpreted as the default maximum version.
    if (version == 0) {
@@ -63,4 +72,4 @@ index 9588dd3ad..c46502a43 100644
 +    *out = TLS1_3_VERSION;
      return true;
    }
-
+ 
