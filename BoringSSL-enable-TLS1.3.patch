@@ -1,8 +1,8 @@
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index 4b42f9a7..c5b75a19 100644
+index 964c30295..0c6b4f986 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -3425,7 +3425,7 @@ OPENSSL_EXPORT int SSL_renegotiate_pending(SSL *ssl);
+@@ -3405,7 +3405,7 @@ OPENSSL_EXPORT int SSL_renegotiate_pending(SSL *ssl);
  OPENSSL_EXPORT int SSL_total_renegotiations(const SSL *ssl);
  
  enum tls13_variant_t {
@@ -12,7 +12,7 @@ index 4b42f9a7..c5b75a19 100644
    tls13_draft28,
  };
 diff --git a/ssl/s3_lib.cc b/ssl/s3_lib.cc
-index d6a25b76..8a87c7f1 100644
+index 9e4d7d8a5..3e9ee3d0a 100644
 --- a/ssl/s3_lib.cc
 +++ b/ssl/s3_lib.cc
 @@ -202,7 +202,7 @@ bool ssl3_new(SSL *ssl) {
@@ -25,7 +25,7 @@ index d6a25b76..8a87c7f1 100644
  }
  
 diff --git a/ssl/ssl_test.cc b/ssl/ssl_test.cc
-index 30fcbab4..b31c22dc 100644
+index 1c0b8fd4c..234a31c14 100644
 --- a/ssl/ssl_test.cc
 +++ b/ssl/ssl_test.cc
 @@ -816,11 +816,11 @@ static void ExpectDefaultVersion(uint16_t min_version, uint16_t max_version,
@@ -42,7 +42,7 @@ index 30fcbab4..b31c22dc 100644
    ExpectDefaultVersion(TLS1_1_VERSION, TLS1_1_VERSION, &DTLSv1_method);
    ExpectDefaultVersion(TLS1_2_VERSION, TLS1_2_VERSION, &DTLSv1_2_method);
  }
-@@ -2591,7 +2591,7 @@ TEST(SSLTest, SetVersion) {
+@@ -2587,7 +2587,7 @@ TEST(SSLTest, SetVersion) {
  
    // Zero is the default version.
    EXPECT_TRUE(SSL_CTX_set_max_proto_version(ctx.get(), 0));
@@ -51,7 +51,7 @@ index 30fcbab4..b31c22dc 100644
    EXPECT_TRUE(SSL_CTX_set_min_proto_version(ctx.get(), 0));
    EXPECT_EQ(TLS1_VERSION, ctx->conf_min_version);
  
-@@ -2625,7 +2625,7 @@ TEST(SSLTest, SetVersion) {
+@@ -2621,7 +2621,7 @@ TEST(SSLTest, SetVersion) {
    EXPECT_FALSE(SSL_CTX_set_min_proto_version(ctx.get(), 0x1234));
  
    EXPECT_TRUE(SSL_CTX_set_max_proto_version(ctx.get(), 0));
@@ -61,7 +61,7 @@ index 30fcbab4..b31c22dc 100644
    EXPECT_EQ(TLS1_1_VERSION, ctx->conf_min_version);
  }
 diff --git a/ssl/ssl_versions.cc b/ssl/ssl_versions.cc
-index a5a7cd97..75db327a 100644
+index a5a7cd970..75db327a5 100644
 --- a/ssl/ssl_versions.cc
 +++ b/ssl/ssl_versions.cc
 @@ -184,7 +184,7 @@ static bool set_max_version(const SSL_PROTOCOL_METHOD *method, uint16_t *out,
