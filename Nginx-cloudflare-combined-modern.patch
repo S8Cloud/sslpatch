@@ -1,3 +1,8 @@
+From da1c0145d1e3064888133806739e02cfaf33ead7 Mon Sep 17 00:00:00 2001
+From: S8Cloud <github@live.hk>
+Date: Fri, 17 Aug 2018 22:16:04 +0800
+Subject: [PATCH] Cloudflare patch hpak & dynamic tls
+
 diff --git a/auto/modules b/auto/modules
 index 09bfcb08dc..645eb89765 100644
 --- a/auto/modules
@@ -122,10 +127,10 @@ index 54e867d303..322b3df98b 100644
  
  #endif /* _NGX_MURMURHASH_H_INCLUDED_ */
 diff --git a/src/event/ngx_event_openssl.c b/src/event/ngx_event_openssl.c
-index b868056148..8923e0abe6 100644
+index cca4609f90..82ed59cdc1 100644
 --- a/src/event/ngx_event_openssl.c
 +++ b/src/event/ngx_event_openssl.c
-@@ -1173,6 +1173,7 @@ ngx_ssl_create_connection(ngx_ssl_t *ssl, ngx_connection_t *c, ngx_uint_t flags)
+@@ -1239,6 +1239,7 @@ ngx_ssl_create_connection(ngx_ssl_t *ssl, ngx_connection_t *c, ngx_uint_t flags)
  
      sc->buffer = ((flags & NGX_SSL_BUFFER) != 0);
      sc->buffer_size = ssl->buffer_size;
@@ -133,7 +138,7 @@ index b868056148..8923e0abe6 100644
  
      sc->session_ctx = ssl->ctx;
  
-@@ -1711,6 +1712,41 @@ ngx_ssl_send_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
+@@ -1806,6 +1807,41 @@ ngx_ssl_send_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
  
      for ( ;; ) {
  
@@ -175,7 +180,7 @@ index b868056148..8923e0abe6 100644
          while (in && buf->last < buf->end && send < limit) {
              if (in->buf->last_buf || in->buf->flush) {
                  flush = 1;
-@@ -1812,6 +1848,9 @@ ngx_ssl_write(ngx_connection_t *c, u_char *data, size_t size)
+@@ -1907,6 +1943,9 @@ ngx_ssl_write(ngx_connection_t *c, u_char *data, size_t size)
  
      if (n > 0) {
  
@@ -186,10 +191,10 @@ index b868056148..8923e0abe6 100644
  
              c->read->handler = c->ssl->saved_read_handler;
 diff --git a/src/event/ngx_event_openssl.h b/src/event/ngx_event_openssl.h
-index 623d851dc4..9996e473c5 100644
+index 159deb7fb2..a5c5ac1879 100644
 --- a/src/event/ngx_event_openssl.h
 +++ b/src/event/ngx_event_openssl.h
-@@ -60,10 +60,19 @@
+@@ -64,10 +64,19 @@
  #endif
  
  
@@ -209,7 +214,7 @@ index 623d851dc4..9996e473c5 100644
  };
  
  
-@@ -86,6 +95,10 @@ struct ngx_ssl_connection_s {
+@@ -93,6 +102,10 @@ struct ngx_ssl_connection_s {
      unsigned                    no_wait_shutdown:1;
      unsigned                    no_send_shutdown:1;
      unsigned                    handshake_buffer_set:1;
@@ -220,7 +225,7 @@ index 623d851dc4..9996e473c5 100644
  };
  
  
-@@ -95,7 +108,7 @@ struct ngx_ssl_connection_s {
+@@ -102,7 +115,7 @@ struct ngx_ssl_connection_s {
  #define NGX_SSL_DFLT_BUILTIN_SCACHE  -5
  
  
@@ -230,11 +235,11 @@ index 623d851dc4..9996e473c5 100644
  typedef struct ngx_ssl_sess_id_s  ngx_ssl_sess_id_t;
  
 diff --git a/src/http/modules/ngx_http_ssl_module.c b/src/http/modules/ngx_http_ssl_module.c
-index 7e95441271..0b9a1d8e96 100644
+index 9e243ea055..c2d21e8351 100644
 --- a/src/http/modules/ngx_http_ssl_module.c
 +++ b/src/http/modules/ngx_http_ssl_module.c
-@@ -239,6 +239,41 @@ static ngx_command_t  ngx_http_ssl_commands[] = {
-       offsetof(ngx_http_ssl_srv_conf_t, stapling_verify),
+@@ -246,6 +246,41 @@ static ngx_command_t  ngx_http_ssl_commands[] = {
+       offsetof(ngx_http_ssl_srv_conf_t, early_data),
        NULL },
  
 +    { ngx_string("ssl_dyn_rec_enable"),
@@ -275,7 +280,7 @@ index 7e95441271..0b9a1d8e96 100644
        ngx_null_command
  };
  
-@@ -564,6 +599,11 @@ ngx_http_ssl_create_srv_conf(ngx_conf_t *cf)
+@@ -576,6 +611,11 @@ ngx_http_ssl_create_srv_conf(ngx_conf_t *cf)
      sscf->session_ticket_keys = NGX_CONF_UNSET_PTR;
      sscf->stapling = NGX_CONF_UNSET;
      sscf->stapling_verify = NGX_CONF_UNSET;
@@ -287,7 +292,7 @@ index 7e95441271..0b9a1d8e96 100644
  
      return sscf;
  }
-@@ -629,6 +669,20 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
+@@ -643,6 +683,20 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
      ngx_conf_merge_str_value(conf->stapling_responder,
                           prev->stapling_responder, "");
  
@@ -308,8 +313,8 @@ index 7e95441271..0b9a1d8e96 100644
      conf->ssl.log = cf->log;
  
      if (conf->enable) {
-@@ -809,6 +863,28 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
- 
+@@ -827,6 +881,28 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
+         return NGX_CONF_ERROR;
      }
  
 +    if (conf->dyn_rec_enable) {
@@ -338,10 +343,10 @@ index 7e95441271..0b9a1d8e96 100644
  }
  
 diff --git a/src/http/modules/ngx_http_ssl_module.h b/src/http/modules/ngx_http_ssl_module.h
-index 57f5941d47..309ac00e82 100644
+index fb3219b63c..deeadc3cef 100644
 --- a/src/http/modules/ngx_http_ssl_module.h
 +++ b/src/http/modules/ngx_http_ssl_module.h
-@@ -57,6 +57,12 @@ typedef struct {
+@@ -58,6 +58,12 @@ typedef struct {
  
      u_char                         *file;
      ngx_uint_t                      line;
@@ -355,23 +360,22 @@ index 57f5941d47..309ac00e82 100644
  
  
 diff --git a/src/http/v2/ngx_http_v2.c b/src/http/v2/ngx_http_v2.c
-index 09737700a6..642d918356 100644
+index e777019299..c18b60ca56 100644
 --- a/src/http/v2/ngx_http_v2.c
 +++ b/src/http/v2/ngx_http_v2.c
-@@ -272,6 +272,8 @@ ngx_http_v2_init(ngx_event_t *rev)
+@@ -270,6 +270,8 @@ ngx_http_v2_init(ngx_event_t *rev)
  
-     h2c->table_update = 1;
+     h2c->frame_size = NGX_HTTP_V2_DEFAULT_FRAME_SIZE;
  
 +    h2c->max_hpack_table_size = NGX_HTTP_V2_DEFAULT_HPACK_TABLE_SIZE;
 +
      h2scf = ngx_http_get_module_srv_conf(hc->conf_ctx, ngx_http_v2_module);
  
      h2c->concurrent_pushes = h2scf->concurrent_pushes;
-@@ -2075,6 +2077,17 @@ ngx_http_v2_state_settings_params(ngx_http_v2_connection_t *h2c, u_char *pos,
-             h2c->concurrent_pushes = ngx_min(value, h2scf->concurrent_pushes);
-             break;
+@@ -2076,6 +2078,14 @@ ngx_http_v2_state_settings_params(ngx_http_v2_connection_t *h2c, u_char *pos,
+         case NGX_HTTP_V2_HEADER_TABLE_SIZE_SETTING:
  
-+        case NGX_HTTP_V2_HEADER_TABLE_SIZE_SETTING:
+             h2c->table_update = 1;
 +
 +            if (value > NGX_HTTP_V2_MAX_HPACK_TABLE_SIZE) {
 +                h2c->max_hpack_table_size = NGX_HTTP_V2_MAX_HPACK_TABLE_SIZE;
@@ -380,11 +384,9 @@ index 09737700a6..642d918356 100644
 +            }
 +
 +            h2c->indicate_resize = 1;
-+            break;
-+
-         default:
              break;
-         }
+ 
+         default:
 diff --git a/src/http/v2/ngx_http_v2.h b/src/http/v2/ngx_http_v2.h
 index ebd0e77c0f..b152b50436 100644
 --- a/src/http/v2/ngx_http_v2.h

@@ -1,18 +1,29 @@
+From cfc32agfht67grthr756778 Mon Sep 17 00:00:00 2001
+From: Buik / Bassie <bassie@buik.locale>
+Date: Wed, 15 Aug 2018 10:23:01 +0800
+
+Subject: [PATCH] Enable TLS 1.3 on BoringSSL
+
+Enable TLS 1.3 on BoringSSL.
+Tested on Nginx 1.15.2 with BoringSSL master (git branch Aug 15 2018).
+Please note that this patch won't work on BoringSSL chromium-stable as it don't support TLS 1.3 RFC.
+You could use Enable-TLS13-BoringSSL.patch for BoringSSL chromium-stable (git branch April 09 2018).
+
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index 5a44020..277b1fb 100644
+index 85b244b..6c2834a 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -3426,7 +3426,7 @@ OPENSSL_EXPORT int SSL_renegotiate_pending(SSL *ssl);
- OPENSSL_EXPORT int SSL_total_renegotiations(const SSL *ssl);
- 
+@@ -3405,7 +3405,7 @@ OPENSSL_EXPORT int SSL_total_renegotiations(const SSL *ssl);
+ // TODO(svaldez): Make |tls13_rfc| the default after callers are switched to
+ // explicitly enable |tls13_all|.
  enum tls13_variant_t {
 -  tls13_default = 0,
 +  tls13_default = 1,
    tls13_draft23,
    tls13_draft28,
- };
+   tls13_rfc,
 diff --git a/ssl/s3_lib.cc b/ssl/s3_lib.cc
-index d6a25b7..8a87c7f 100644
+index 9e4d7d8..3e9ee3d 100644
 --- a/ssl/s3_lib.cc
 +++ b/ssl/s3_lib.cc
 @@ -202,7 +202,7 @@ bool ssl3_new(SSL *ssl) {
@@ -25,15 +36,14 @@ index d6a25b7..8a87c7f 100644
  }
  
 diff --git a/ssl/ssl_test.cc b/ssl/ssl_test.cc
-index d6e0713..26c452d 100644
+index 74c4e9e..d20531c 100644
 --- a/ssl/ssl_test.cc
 +++ b/ssl/ssl_test.cc
-@@ -817,11 +817,13 @@ static void ExpectDefaultVersion(uint16_t min_version, uint16_t max_version,
- 
+@@ -821,10 +821,12 @@ static void ExpectDefaultVersion(uint16_t min_version, uint16_t max_version,
  TEST(SSLTest, DefaultVersion) {
    // TODO(svaldez): Update this when TLS 1.3 is enabled by default.
-+  ExpectDefaultVersion(TLS1_VERSION, TLS1_3_VERSION, &TLS_method);
    ExpectDefaultVersion(TLS1_VERSION, TLS1_2_VERSION, &TLS_method);
++  ExpectDefaultVersion(TLS1_VERSION, TLS1_3_VERSION, &TLS_method);
    ExpectDefaultVersion(TLS1_VERSION, TLS1_VERSION, &TLSv1_method);
    ExpectDefaultVersion(TLS1_1_VERSION, TLS1_1_VERSION, &TLSv1_1_method);
    ExpectDefaultVersion(TLS1_2_VERSION, TLS1_2_VERSION, &TLSv1_2_method);
@@ -42,7 +52,7 @@ index d6e0713..26c452d 100644
    ExpectDefaultVersion(TLS1_1_VERSION, TLS1_1_VERSION, &DTLSv1_method);
    ExpectDefaultVersion(TLS1_2_VERSION, TLS1_2_VERSION, &DTLSv1_2_method);
  }
-@@ -2615,7 +2617,7 @@ TEST(SSLTest, SetVersion) {
+@@ -2591,7 +2593,7 @@ TEST(SSLTest, SetVersion) {
  
    // Zero is the default version.
    EXPECT_TRUE(SSL_CTX_set_max_proto_version(ctx.get(), 0));
@@ -51,7 +61,7 @@ index d6e0713..26c452d 100644
    EXPECT_TRUE(SSL_CTX_set_min_proto_version(ctx.get(), 0));
    EXPECT_EQ(TLS1_VERSION, ctx->conf_min_version);
  
-@@ -2648,7 +2650,7 @@ TEST(SSLTest, SetVersion) {
+@@ -2625,7 +2627,7 @@ TEST(SSLTest, SetVersion) {
    EXPECT_FALSE(SSL_CTX_set_min_proto_version(ctx.get(), 0x1234));
  
    EXPECT_TRUE(SSL_CTX_set_max_proto_version(ctx.get(), 0));
@@ -61,7 +71,7 @@ index d6e0713..26c452d 100644
    EXPECT_EQ(TLS1_1_VERSION, ctx->conf_min_version);
  }
 diff --git a/ssl/ssl_versions.cc b/ssl/ssl_versions.cc
-index 9588dd3..c46502a 100644
+index 6f07b93..7819341 100644
 --- a/ssl/ssl_versions.cc
 +++ b/ssl/ssl_versions.cc
 @@ -189,7 +189,7 @@ static bool set_max_version(const SSL_PROTOCOL_METHOD *method, uint16_t *out,
