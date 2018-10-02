@@ -1,0 +1,42 @@
+From 62d7b6d5c48e2716b1beeacfaf1525df5f4e36db Mon Sep 17 00:00:00 2001
+From: S8Cloud <dcc@live.hk>
+Date: Tue, 2 Oct 2018 15:18:44 +0800
+Subject: [PATCH] nginx_openssl-1.1.1_renegotiation_and_chacha
+
+diff --git a/src/event/ngx_event_openssl.c b/src/event/ngx_event_openssl.c
+index 7512913483..061a3b2970 100644
+--- a/src/event/ngx_event_openssl.c
++++ b/src/event/ngx_event_openssl.c
+@@ -350,6 +350,10 @@ ngx_ssl_create(ngx_ssl_t *ssl, ngx_uint_t protocols, void *data)
+     SSL_CTX_set_max_proto_version(ssl->ctx, TLS1_3_VERSION);
+ #endif
+ 
++#ifdef SSL_OP_NO_RENEGOTIATION
++    SSL_CTX_set_options(ssl->ctx, SSL_OP_NO_RENEGOTIATION);
++#endif
++
+ #ifdef SSL_OP_NO_COMPRESSION
+     SSL_CTX_set_options(ssl->ctx, SSL_OP_NO_COMPRESSION);
+ #endif
+@@ -358,6 +362,10 @@ ngx_ssl_create(ngx_ssl_t *ssl, ngx_uint_t protocols, void *data)
+     SSL_CTX_set_options(ssl->ctx, SSL_OP_NO_ANTI_REPLAY);
+ #endif
+ 
++#ifdef SSL_OP_PRIORITIZE_CHACHA
++    SSL_CTX_set_options(ssl->ctx, SSL_OP_PRIORITIZE_CHACHA);
++#endif
++
+ #ifdef SSL_MODE_RELEASE_BUFFERS
+     SSL_CTX_set_mode(ssl->ctx, SSL_MODE_RELEASE_BUFFERS);
+ #endif
+@@ -1293,10 +1301,6 @@ ngx_ssl_create_connection(ngx_ssl_t *ssl, ngx_connection_t *c, ngx_uint_t flags)
+ 
+     } else {
+         SSL_set_accept_state(sc->connection);
+-
+-#ifdef SSL_OP_NO_RENEGOTIATION
+-        SSL_set_options(sc->connection, SSL_OP_NO_RENEGOTIATION);
+-#endif
+     }
+ 
+     if (SSL_set_ex_data(sc->connection, ngx_ssl_connection_index, c) == 0) {

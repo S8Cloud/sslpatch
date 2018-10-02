@@ -1,7 +1,23 @@
-From da1c0145d1e3064888133806739e02cfaf33ead7 Mon Sep 17 00:00:00 2001
+From da3bb2d402c8f659faad42634c08025016061228 Mon Sep 17 00:00:00 2001
 From: S8Cloud <github@live.hk>
-Date: Fri, 17 Aug 2018 22:16:04 +0800
-Subject: [PATCH] Cloudflare patch hpak & dynamic tls
+Date: Tue, 2 Oct 2018 15:32:20 +0800
+Subject: [PATCH] nginx_dynamic_tls_records_&_http2_hpack
+
+---
+ auto/modules                            |   4 +
+ auto/options                            |   3 +
+ src/core/ngx_murmurhash.c               |  60 ++++
+ src/core/ngx_murmurhash.h               |   2 +
+ src/event/ngx_event_openssl.c           |  39 +++
+ src/event/ngx_event_openssl.h           |  15 +-
+ src/http/modules/ngx_http_ssl_module.c  |  76 +++++
+ src/http/modules/ngx_http_ssl_module.h  |   6 +
+ src/http/v2/ngx_http_v2.c               |  10 +
+ src/http/v2/ngx_http_v2.h               |  88 +++++
+ src/http/v2/ngx_http_v2_encode.c        |   4 +-
+ src/http/v2/ngx_http_v2_filter_module.c | 213 ++++++------
+ src/http/v2/ngx_http_v2_table.c         | 431 ++++++++++++++++++++++++
+ 13 files changed, 829 insertions(+), 122 deletions(-)
 
 diff --git a/auto/modules b/auto/modules
 index 09bfcb08dc..645eb89765 100644
@@ -127,10 +143,10 @@ index 54e867d303..322b3df98b 100644
  
  #endif /* _NGX_MURMURHASH_H_INCLUDED_ */
 diff --git a/src/event/ngx_event_openssl.c b/src/event/ngx_event_openssl.c
-index cca4609f90..82ed59cdc1 100644
+index 061a3b2970..bf6c25c073 100644
 --- a/src/event/ngx_event_openssl.c
 +++ b/src/event/ngx_event_openssl.c
-@@ -1239,6 +1239,7 @@ ngx_ssl_create_connection(ngx_ssl_t *ssl, ngx_connection_t *c, ngx_uint_t flags)
+@@ -1275,6 +1275,7 @@ ngx_ssl_create_connection(ngx_ssl_t *ssl, ngx_connection_t *c, ngx_uint_t flags)
  
      sc->buffer = ((flags & NGX_SSL_BUFFER) != 0);
      sc->buffer_size = ssl->buffer_size;
@@ -138,7 +154,7 @@ index cca4609f90..82ed59cdc1 100644
  
      sc->session_ctx = ssl->ctx;
  
-@@ -1806,6 +1807,41 @@ ngx_ssl_send_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
+@@ -2119,6 +2120,41 @@ ngx_ssl_send_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
  
      for ( ;; ) {
  
@@ -180,7 +196,7 @@ index cca4609f90..82ed59cdc1 100644
          while (in && buf->last < buf->end && send < limit) {
              if (in->buf->last_buf || in->buf->flush) {
                  flush = 1;
-@@ -1907,6 +1943,9 @@ ngx_ssl_write(ngx_connection_t *c, u_char *data, size_t size)
+@@ -2226,6 +2262,9 @@ ngx_ssl_write(ngx_connection_t *c, u_char *data, size_t size)
  
      if (n > 0) {
  
@@ -191,7 +207,7 @@ index cca4609f90..82ed59cdc1 100644
  
              c->read->handler = c->ssl->saved_read_handler;
 diff --git a/src/event/ngx_event_openssl.h b/src/event/ngx_event_openssl.h
-index 159deb7fb2..a5c5ac1879 100644
+index abd84ccf03..f3526a0c9f 100644
 --- a/src/event/ngx_event_openssl.h
 +++ b/src/event/ngx_event_openssl.h
 @@ -64,10 +64,19 @@
@@ -214,10 +230,10 @@ index 159deb7fb2..a5c5ac1879 100644
  };
  
  
-@@ -93,6 +102,10 @@ struct ngx_ssl_connection_s {
-     unsigned                    no_wait_shutdown:1;
-     unsigned                    no_send_shutdown:1;
-     unsigned                    handshake_buffer_set:1;
+@@ -98,6 +107,10 @@ struct ngx_ssl_connection_s {
+     unsigned                    try_early_data:1;
+     unsigned                    in_early:1;
+     unsigned                    early_preread:1;
 +
 +    ngx_ssl_dyn_rec_t           dyn_rec;
 +    ngx_msec_t                  dyn_rec_last_write;
@@ -225,7 +241,7 @@ index 159deb7fb2..a5c5ac1879 100644
  };
  
  
-@@ -102,7 +115,7 @@ struct ngx_ssl_connection_s {
+@@ -107,7 +120,7 @@ struct ngx_ssl_connection_s {
  #define NGX_SSL_DFLT_BUILTIN_SCACHE  -5
  
  
@@ -360,7 +376,7 @@ index fb3219b63c..deeadc3cef 100644
  
  
 diff --git a/src/http/v2/ngx_http_v2.c b/src/http/v2/ngx_http_v2.c
-index e777019299..c18b60ca56 100644
+index b916ebdf6d..876e63c674 100644
 --- a/src/http/v2/ngx_http_v2.c
 +++ b/src/http/v2/ngx_http_v2.c
 @@ -270,6 +270,8 @@ ngx_http_v2_init(ngx_event_t *rev)
