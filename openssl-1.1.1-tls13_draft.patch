@@ -1,8 +1,8 @@
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index 0a18a43544..c31597584b 100644
+index 0a18a43544c..e2a4cde482a 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -173,12 +173,12 @@ extern "C" {
+@@ -173,12 +173,16 @@ extern "C" {
  # define SSL_DEFAULT_CIPHER_LIST "ALL:!COMPLEMENTOFDEFAULT:!eNULL"
  /* This is the default set of TLSv1.3 ciphersuites */
  # if !defined(OPENSSL_NO_CHACHA) && !defined(OPENSSL_NO_POLY1305)
@@ -10,21 +10,21 @@ index 0a18a43544..c31597584b 100644
 +#  define TLS_DEFAULT_CIPHERSUITES "TLS_AES_128_GCM_SHA256:" \
                                     "TLS_CHACHA20_POLY1305_SHA256:" \
 -                                   "TLS_AES_128_GCM_SHA256"
-+                                   "TLS_AES_128_CCM_SHA256" \
-+                                   "TLS_AES_128_CCM_8_SHA256" \
++                                   "TLS_AES_128_CCM_SHA256:" \
++                                   "TLS_AES_128_CCM_8_SHA256:" \
 +                                   "TLS_AES_256_GCM_SHA384"
  # else
 -#  define TLS_DEFAULT_CIPHERSUITES "TLS_AES_256_GCM_SHA384:" \
 -                                   "TLS_AES_128_GCM_SHA256"
 +#  define TLS_DEFAULT_CIPHERSUITES "TLS_AES_128_GCM_SHA256:" \
-+                                   "TLS_AES_128_CCM_SHA256" \
-+                                   "TLS_AES_128_CCM_8_SHA256" \
++                                   "TLS_AES_128_CCM_SHA256:" \
++                                   "TLS_AES_128_CCM_8_SHA256:" \
 +                                   "TLS_AES_256_GCM_SHA384"
  #endif
  /*
   * As of OpenSSL 1.0.0, ssl_create_cipher_list() in ssl/ssl_ciph.c always
 diff --git a/include/openssl/tls1.h b/include/openssl/tls1.h
-index 2e46cf80d3..0accc837a3 100644
+index 2e46cf80d34..0accc837a36 100644
 --- a/include/openssl/tls1.h
 +++ b/include/openssl/tls1.h
 @@ -30,6 +30,16 @@ extern "C" {
@@ -45,7 +45,7 @@ index 2e46cf80d3..0accc837a3 100644
  # define TLS_ANY_VERSION                 0x10000
 
 diff --git a/ssl/record/ssl3_record_tls13.c b/ssl/record/ssl3_record_tls13.c
-index a11ed483e6..4fd583dd03 100644
+index a11ed483e66..4fd583dd039 100644
 --- a/ssl/record/ssl3_record_tls13.c
 +++ b/ssl/record/ssl3_record_tls13.c
 @@ -173,8 +173,9 @@ int tls13_enc(SSL *s, SSL3_RECORD *recs, size_t n_recs, int sending)
@@ -61,10 +61,10 @@ index a11ed483e6..4fd583dd03 100644
                                  (unsigned int)rec->length) <= 0
              || EVP_CipherFinal_ex(ctx, rec->data + lenu, &lenf) <= 0
 diff --git a/ssl/ssl_locl.h b/ssl/ssl_locl.h
-index e8819e7a28..9afa488822 100644
+index c22c1f9ee8f..38b30120a2a 100644
 --- a/ssl/ssl_locl.h
 +++ b/ssl/ssl_locl.h
-@@ -1074,6 +1111,8 @@ struct ssl_st {
+@@ -1078,6 +1078,8 @@ struct ssl_st {
       * DTLS1_VERSION)
       */
      int version;
@@ -74,7 +74,7 @@ index e8819e7a28..9afa488822 100644
      const SSL_METHOD *method;
      /*
 diff --git a/ssl/statem/extensions_clnt.c b/ssl/statem/extensions_clnt.c
-index 4b5e6fe2b8..99981c9e37 100644
+index 4b5e6fe2b87..99981c9e37a 100644
 --- a/ssl/statem/extensions_clnt.c
 +++ b/ssl/statem/extensions_clnt.c
 @@ -530,8 +530,25 @@ EXT_RETURN tls_construct_ctos_supported_versions(SSL *s, WPACKET *pkt,
@@ -121,7 +121,7 @@ index 4b5e6fe2b8..99981c9e37 100644
       * The only protocol version we support which is valid in this extension in
       * a ServerHello is TLSv1.3 therefore we shouldn't be getting anything else.
 diff --git a/ssl/statem/extensions_srvr.c b/ssl/statem/extensions_srvr.c
-index 0f2b22392b..6c1ce9813f 100644
+index 0f2b22392bc..6c1ce9813f3 100644
 --- a/ssl/statem/extensions_srvr.c
 +++ b/ssl/statem/extensions_srvr.c
 @@ -897,7 +897,8 @@ int tls_parse_ctos_cookie(SSL *s, PACKET *pkt, unsigned int context, X509 *x,
@@ -145,7 +145,7 @@ index 0f2b22392b..6c1ce9813f 100644
          SSLfatal(s, SSL_AD_INTERNAL_ERROR,
                   SSL_F_TLS_CONSTRUCT_STOC_SUPPORTED_VERSIONS,
 diff --git a/ssl/statem/statem_lib.c b/ssl/statem/statem_lib.c
-index 508bb88767..ee927baf64 100644
+index 508bb88767a..ee927baf64a 100644
 --- a/ssl/statem/statem_lib.c
 +++ b/ssl/statem/statem_lib.c
 @@ -1753,6 +1753,8 @@ int ssl_choose_server_version(SSL *s, CLIENTHELLO_MSG *hello, DOWNGRADE *dgrd)
@@ -192,7 +192,7 @@ index 508bb88767..ee927baf64 100644
              return 0;
          }
 diff --git a/ssl/t1_trce.c b/ssl/t1_trce.c
-index be3039af38..99c4ddcb41 100644
+index be3039af382..99c4ddcb41a 100644
 --- a/ssl/t1_trce.c
 +++ b/ssl/t1_trce.c
 @@ -65,6 +65,11 @@ static const ssl_trace_tbl ssl_version_tbl[] = {
