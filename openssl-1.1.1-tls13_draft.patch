@@ -1,3 +1,16 @@
+diff --git a/ssl/s3_lib.c b/ssl/s3_lib.c
+index 7713f767b2d..e8ad16221c2 100644
+--- a/ssl/s3_lib.c
++++ b/ssl/s3_lib.c
+@@ -4159,7 +4159,7 @@ const SSL_CIPHER *ssl3_choose_cipher(SSL *s, STACK_OF(SSL_CIPHER) *clnt,
+         /* If ChaCha20 is at the top of the client preference list,
+            and there are ChaCha20 ciphers in the server list, then
+            temporarily prioritize all ChaCha20 ciphers in the servers list. */
+-        if (s->options & SSL_OP_PRIORITIZE_CHACHA && sk_SSL_CIPHER_num(clnt) > 0) {
++        if (sk_SSL_CIPHER_num(clnt) > 0) {
+             c = sk_SSL_CIPHER_value(clnt, 0);
+             if (c->algorithm_enc == SSL_CHACHA20POLY1305) {
+                 /* ChaCha20 is client preferred, check server... */
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
 index 0a18a43544c..e2a4cde482a 100644
 --- a/include/openssl/ssl.h
