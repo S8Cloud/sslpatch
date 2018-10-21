@@ -1,21 +1,8 @@
-diff --git a/ssl/s3_lib.c b/ssl/s3_lib.c
-index 7713f767b2d..e8ad16221c2 100644
---- a/ssl/s3_lib.c
-+++ b/ssl/s3_lib.c
-@@ -4159,7 +4159,7 @@ const SSL_CIPHER *ssl3_choose_cipher(SSL *s, STACK_OF(SSL_CIPHER) *clnt,
-         /* If ChaCha20 is at the top of the client preference list,
-            and there are ChaCha20 ciphers in the server list, then
-            temporarily prioritize all ChaCha20 ciphers in the servers list. */
--        if (s->options & SSL_OP_PRIORITIZE_CHACHA && sk_SSL_CIPHER_num(clnt) > 0) {
-+        if (sk_SSL_CIPHER_num(clnt) > 0) {
-             c = sk_SSL_CIPHER_value(clnt, 0);
-             if (c->algorithm_enc == SSL_CHACHA20POLY1305) {
-                 /* ChaCha20 is client preferred, check server... */
 diff --git a/include/openssl/ssl.h b/include/openssl/ssl.h
-index 0a18a43544c..e2a4cde482a 100644
+index 0a18a43544c..c31597584b8 100644
 --- a/include/openssl/ssl.h
 +++ b/include/openssl/ssl.h
-@@ -173,12 +173,16 @@ extern "C" {
+@@ -173,12 +173,12 @@ extern "C" {
  # define SSL_DEFAULT_CIPHER_LIST "ALL:!COMPLEMENTOFDEFAULT:!eNULL"
  /* This is the default set of TLSv1.3 ciphersuites */
  # if !defined(OPENSSL_NO_CHACHA) && !defined(OPENSSL_NO_POLY1305)
@@ -23,15 +10,11 @@ index 0a18a43544c..e2a4cde482a 100644
 +#  define TLS_DEFAULT_CIPHERSUITES "TLS_AES_128_GCM_SHA256:" \
                                     "TLS_CHACHA20_POLY1305_SHA256:" \
 -                                   "TLS_AES_128_GCM_SHA256"
-+                                   "TLS_AES_128_CCM_SHA256:" \
-+                                   "TLS_AES_128_CCM_8_SHA256:" \
 +                                   "TLS_AES_256_GCM_SHA384"
  # else
 -#  define TLS_DEFAULT_CIPHERSUITES "TLS_AES_256_GCM_SHA384:" \
 -                                   "TLS_AES_128_GCM_SHA256"
 +#  define TLS_DEFAULT_CIPHERSUITES "TLS_AES_128_GCM_SHA256:" \
-+                                   "TLS_AES_128_CCM_SHA256:" \
-+                                   "TLS_AES_128_CCM_8_SHA256:" \
 +                                   "TLS_AES_256_GCM_SHA384"
  #endif
  /*
@@ -43,7 +26,7 @@ index 2e46cf80d34..0accc837a36 100644
 @@ -30,6 +30,16 @@ extern "C" {
  # define TLS1_3_VERSION                  0x0304
  # define TLS_MAX_VERSION                 TLS1_3_VERSION
-
+ 
 +/* TODO(TLS1.3) REMOVE ME: Version indicators for draft version */
 +# define TLS1_3_VERSION_DRAFT_23         0x7f17
 +# define TLS1_3_VERSION_DRAFT_26         0x7f1a
@@ -56,7 +39,7 @@ index 2e46cf80d34..0accc837a36 100644
 +
  /* Special value for method supporting multiple versions */
  # define TLS_ANY_VERSION                 0x10000
-
+ 
 diff --git a/ssl/record/ssl3_record_tls13.c b/ssl/record/ssl3_record_tls13.c
 index a11ed483e66..4fd583dd039 100644
 --- a/ssl/record/ssl3_record_tls13.c
@@ -73,6 +56,80 @@ index a11ed483e66..4fd583dd039 100644
              || EVP_CipherUpdate(ctx, rec->data, &lenu, rec->input,
                                  (unsigned int)rec->length) <= 0
              || EVP_CipherFinal_ex(ctx, rec->data + lenu, &lenf) <= 0
+diff --git a/ssl/s3_lib.c b/ssl/s3_lib.c
+index 7713f767b2d..b108561373e 100644
+--- a/ssl/s3_lib.c
++++ b/ssl/s3_lib.c
+@@ -32,6 +32,12 @@ const unsigned char tls12downgrade[] = {
+ 
+ /* The list of available TLSv1.3 ciphers */
+ static SSL_CIPHER tls13_ciphers[] = {
++    {
++        0,
++    }
++};
++
++static SSL_CIPHER ssl3_ciphers[] = {
+     {
+         1,
+         TLS1_3_RFC_AES_128_GCM_SHA256,
+@@ -111,9 +117,7 @@ static SSL_CIPHER tls13_ciphers[] = {
+         SSL_HANDSHAKE_MAC_SHA256,
+         128,
+         128,
+-    }
+-};
+-
++    },
+ /*
+  * The list of available ciphers, mostly organized into the following
+  * groups:
+@@ -124,7 +128,6 @@ static SSL_CIPHER tls13_ciphers[] = {
+  *      Cipher families: Chacha/poly, Camellia, Gost, IDEA, SEED
+  *      Weak ciphers
+  */
+-static SSL_CIPHER ssl3_ciphers[] = {
+     {
+      1,
+      SSL3_TXT_RSA_NULL_MD5,
+diff --git a/ssl/ssl_ciph.c b/ssl/ssl_ciph.c
+index 14066d0ea45..bf99ea79d66 100644
+--- a/ssl/ssl_ciph.c
++++ b/ssl/ssl_ciph.c
+@@ -294,6 +294,7 @@ static const SSL_CIPHER cipher_aliases[] = {
+     {0, SSL_TXT_TLSV1, NULL, 0, 0, 0, 0, 0, TLS1_VERSION},
+     {0, "TLSv1.0", NULL, 0, 0, 0, 0, 0, TLS1_VERSION},
+     {0, SSL_TXT_TLSV1_2, NULL, 0, 0, 0, 0, 0, TLS1_2_VERSION},
++    {0, "TLS13", NULL, 0, 0, 0, 0, 0, TLS1_3_VERSION},
+ 
+     /* strength classes */
+     {0, SSL_TXT_LOW, NULL, 0, 0, 0, 0, 0, 0, 0, 0, 0, SSL_LOW},
+@@ -1538,6 +1539,9 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method,
+     ssl_cipher_apply_rule(0, SSL_kDHE | SSL_kECDHE, 0, 0, SSL_AEAD, 0, 0,
+                           CIPHER_BUMP, -1, &head, &tail);
+ 
++    ssl_cipher_apply_rule(0, 0, 0, 0, 0, TLS1_3_VERSION, 0, CIPHER_BUMP, -1,
++                          &head, &tail);
++
+     /* Now disable everything (maintaining the ordering!) */
+     ssl_cipher_apply_rule(0, 0, 0, 0, 0, 0, 0, CIPHER_DEL, -1, &head, &tail);
+ 
+@@ -1595,13 +1599,13 @@ STACK_OF(SSL_CIPHER) *ssl_create_cipher_list(const SSL_METHOD *ssl_method,
+     }
+ 
+     /* Add TLSv1.3 ciphers first - we always prefer those if possible */
+-    for (i = 0; i < sk_SSL_CIPHER_num(tls13_ciphersuites); i++) {
++    /* for (i = 0; i < sk_SSL_CIPHER_num(tls13_ciphersuites); i++) {
+         if (!sk_SSL_CIPHER_push(cipherstack,
+                                 sk_SSL_CIPHER_value(tls13_ciphersuites, i))) {
+             sk_SSL_CIPHER_free(cipherstack);
+             return NULL;
+         }
+-    }
++    } */
+ 
+     /*
+      * The cipher selection for the list is done. The ciphers are added
 diff --git a/ssl/ssl_locl.h b/ssl/ssl_locl.h
 index c22c1f9ee8f..38b30120a2a 100644
 --- a/ssl/ssl_locl.h
@@ -93,7 +150,7 @@ index 4b5e6fe2b87..99981c9e37a 100644
 @@ -530,8 +530,25 @@ EXT_RETURN tls_construct_ctos_supported_versions(SSL *s, WPACKET *pkt,
          return EXT_RETURN_FAIL;
      }
-
+ 
 +    /*
 +     * TODO(TLS1.3): There is some discussion on the TLS list as to whether
 +     * we should include versions <TLS1.2. For the moment we do. To be
@@ -120,7 +177,7 @@ index 4b5e6fe2b87..99981c9e37a 100644
 @@ -1760,6 +1777,15 @@ int tls_parse_stoc_supported_versions(SSL *s, PACKET *pkt, unsigned int context,
          return 0;
      }
-
+ 
 +    /* TODO(TLS1.3): Remove this before release */
 +    if (version == TLS1_3_VERSION_DRAFT
 +            || version == TLS1_3_VERSION_DRAFT_27
@@ -148,7 +205,7 @@ index 0f2b22392bc..6c1ce9813f3 100644
          WPACKET_cleanup(&hrrpkt);
          SSLfatal(s, SSL_AD_INTERNAL_ERROR, SSL_F_TLS_PARSE_CTOS_COOKIE,
 @@ -1652,7 +1653,8 @@ EXT_RETURN tls_construct_stoc_supported_versions(SSL *s, WPACKET *pkt,
-
+ 
      if (!WPACKET_put_bytes_u16(pkt, TLSEXT_TYPE_supported_versions)
              || !WPACKET_start_sub_packet_u16(pkt)
 -            || !WPACKET_put_bytes_u16(pkt, s->version)
@@ -167,12 +224,12 @@ index 508bb88767a..ee927baf64a 100644
          PACKET versionslist;
 +        /* TODO(TLS1.3): Remove this before release */
 +        unsigned int orig_candidate = 0;
-
+ 
          suppversions->parsed = 1;
-
+ 
 @@ -1774,6 +1776,23 @@ int ssl_choose_server_version(SSL *s, CLIENTHELLO_MSG *hello, DOWNGRADE *dgrd)
              return SSL_R_BAD_LEGACY_VERSION;
-
+ 
          while (PACKET_get_net_2(&versionslist, &candidate_vers)) {
 +            /* TODO(TLS1.3): Remove this before release */
 +            if (candidate_vers == TLS1_3_VERSION
